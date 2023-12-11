@@ -17,10 +17,10 @@ class CuentaResource extends JsonResource
     public function toArray(Request $request): array
     {
         $ingresos = $this->whenLoaded('ingresos', function () {
-            return !empty($this->ingresos) ? MovimientosResource::collection($this->ingresos) : null;
+            return !empty($this->ingresos) ? MovimientosSimplesResource::collection($this->ingresos) : null;
         });
         $gastos = $this->whenLoaded('gastos', function () {
-            return !empty($this->gastos) ? MovimientosResource::collection($this->gastos) : null;
+            return !empty($this->gastos) ? MovimientosSimplesResource::collection($this->gastos) : null;
         });
 
         $movimientos = $ingresos->concat($gastos)

@@ -8,4 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class MovimientosFamilia extends Model
 {
     use HasFactory;
+
+    protected $table = "movimientos_familias";
+
+    protected $fillable = [
+        'nombre',
+        'activo'
+    ];
 }

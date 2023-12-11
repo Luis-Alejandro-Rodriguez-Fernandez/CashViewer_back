@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Cuenta extends Model
 {
+    use HasFactory;
+
+    protected $table = "cuentas";
+
     protected $fillable = [
         'user_id',
         'familia_id',
@@ -20,7 +24,10 @@ class Cuenta extends Model
         'updated_at',
     ];
 
-    use HasFactory;
+    function user()
+    {
+        return $this->belongsTo(User::class, 'id', 'user_id');
+    }
 
     function ingresos()
     {

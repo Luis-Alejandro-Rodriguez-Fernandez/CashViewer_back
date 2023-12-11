@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\CuentaResource;
 use App\Models\Cuenta;
+use App\Services\CuentasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CuentaController extends Controller
 {
+    protected $cuentasService;
+
+    public function __construct(CuentasService $cuentasService)
+    {
+        $this->cuentasService = $cuentasService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -27,38 +35,34 @@ class CuentaController extends Controller
                 ->first();
         }
 
-        return $this->generalMethods()->responseToApp(1, new CuentaResource($cuenta));
+        if ($cuenta) {
+            return $this->generalMethods()->responseToApp(1, new CuentaResource($cuenta));
+        }
+
+        return $this->generalMethods()->responseToApp(0, [], "No se ha encontrado la información de la cuenta");
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+
+    public function getCuentasObjetivo()
     {
-        //
+        $cuentas = [];
+
+        if (Auth::check() && !empty(auth()->user()->cuenta)) {
+            $cuentas = $this->cuentasService->getCuentasObjetivos(['id' => auth()->user()->id]);
+        }
+
+        return $this->generalMethods()->responseToApp(1, $cuentas, 'Cuentas objetivo en data');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Cuenta $cuenta)
-    {
-        //
-    }
+    public function createCuentaObjetivo()
+    {}
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Cuenta $cuenta)
-    {
-        //
-    }
+    public function updateCuentaObjetivo()
+    {}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Cuenta $cuenta)
-    {
-        //
-    }
+    public function deleteCuentaObjetivo()
+    {}
 }

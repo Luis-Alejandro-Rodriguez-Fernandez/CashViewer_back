@@ -8,4 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class CuentasFamilia extends Model
 {
     use HasFactory;
+
+    protected $table = "cuentas_familias";
+
+    protected $fillable = [
+        'nombre',
+        'activo'
+    ];
 }

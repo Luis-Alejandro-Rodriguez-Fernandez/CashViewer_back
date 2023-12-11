@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Movimiento extends Model
 {
+
+    use HasFactory;
+    use SoftDeletes;
+
+    protected $table="movimientos";
+
     protected $fillable = [
         'origen_id',
         'destino_id',
@@ -28,7 +34,4 @@ class Movimiento extends Model
     {
         return strtotime($this->fecha);
     }
-
-    use HasFactory;
-    use SoftDeletes;
 }

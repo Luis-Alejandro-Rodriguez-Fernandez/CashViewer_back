@@ -42,4 +42,10 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    //***************RELATIONS****************//
+    function cuentaMain()
+    {
+        return $this->hasMany(Cuenta::class, 'user_id', 'id')->whereNull('cuenta_id')->first();
+    }
 }
