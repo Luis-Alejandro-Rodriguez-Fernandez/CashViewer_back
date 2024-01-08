@@ -16,6 +16,12 @@ class MovimientosSimplesResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        if (auth()->check()) {
+            $tipoParaUser = $this->destino_id === auth()->user()->cuentaMain()->id
+                ? 1
+                : 2;
+        }
+
         return [
             'id' => $this->id,
             'origen_id' => $this->origen_id,
@@ -25,6 +31,7 @@ class MovimientosSimplesResource extends JsonResource
             'tipo_id' => $this->tipo_id,
             'concepto' => $this->concepto,
             'cantidad' => $this->cantidad,
+            'type_for_user' => $tipoParaUser,
             'fecha' => $this->fecha,
             'fecha_' => $this->fecha_milis,
         ];

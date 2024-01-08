@@ -16,19 +16,19 @@ class generalClass
         5 => 'Sabado',
         6 => 'Domingo',
     ];
-    public const MONTH = [
-        0 => 'Enero',
-        1 => 'Febrero',
-        2 => 'Marzo',
-        3 => 'Abril',
-        4 => 'Mayo',
-        5 => 'Junio',
-        6 => 'Julio',
-        7 => 'Agosto',
-        8 => 'Septiembre',
-        9 => 'Octubre',
-        10 => 'Noviembre',
-        11 => 'Diciembre',
+    public $month = [
+        1 => 'Enero',
+        2 => 'Febrero',
+        3 => 'Marzo',
+        4 => 'Abril',
+        5 => 'Mayo',
+        6 => 'Junio',
+        7 => 'Julio',
+        8 => 'Agosto',
+        9 => 'Septiembre',
+        10 => 'Octubre',
+        11 => 'Noviembre',
+        12 => 'Diciembre',
     ];
 
     public function responseToApp($status, $data, $message = "")
@@ -51,5 +51,10 @@ class generalClass
             'ordenar' => $fecha ? date($formatoOrdenar, strtotime($fecha)) : '',
             'ver' => $fecha ? date($formato, strtotime($fecha)) : '',
         ];
+    }
+
+    public function getMonths()
+    {
+        return $this->month;
     }
 }

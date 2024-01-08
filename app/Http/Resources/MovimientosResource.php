@@ -4,6 +4,7 @@
 namespace App\Http\Resources;
 
 
+use App\Helpers\generalClass;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,14 @@ class MovimientosResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $tipoParaUser = 0;
+
+        if (auth()->check()) {
+            $tipoParaUser = $this->destino_id === auth()->user()->cuentaMain()->id
+                ? 1
+                : 2;
+        }
+
         return [
             'id' => $this->id,
             'origen_id' => $this->origen_id,
@@ -29,7 +38,8 @@ class MovimientosResource extends JsonResource
             'tipo' => $this->tipo,
             'concepto' => $this->concepto,
             'cantidad' => $this->cantidad,
-            'fecha' => $this->generalMethods()->parseFecha($this->fecha, 'd/m/Y H:i:s'),
+            'type_for_user' => $tipoParaUser,
+            'fecha' => app(generalClass::class)->parseFecha($this->fecha, 'd/m/Y'),
         ];
     }
 }

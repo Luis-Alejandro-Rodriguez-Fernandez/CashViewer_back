@@ -18,11 +18,24 @@ class Cuenta extends Model
         'nombre',
         'descripcion',
         'saldo',
+        'objetivo',
         'activo',
+        'finalizado',
         'deleted_at',
         'created_at',
         'updated_at',
     ];
+
+    protected $appends = ['progreso'];
+
+    public function getProgresoAttribute()
+    {
+        if ($this->cuenta_id && $this->objetivo) {
+          $progeso = ($this->saldo ?? 0) * 100 / $this->objetivo;
+
+          return intval($progeso * 100) / 100;
+        }
+    }
 
     function user()
     {
@@ -32,12 +45,14 @@ class Cuenta extends Model
     function ingresos()
     {
         return $this->hasMany(Movimiento::class, 'destino_id', 'id')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->limit(10);
     }
 
     function gastos()
     {
         return $this->hasMany(Movimiento::class, 'origen_id', 'id')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->limit(10);
     }
 }

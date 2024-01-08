@@ -71,88 +71,92 @@ class MovimientosService
         $entrada = $this->movimientosRepository->getEntradas($filtros)?->sum('cantidad') ?? 0;
         $salida = $this->movimientosRepository->getSalidas($filtros)?->sum('cantidad') ?? 0;
 
-        return response()->json([
+        return [
             'entrada' => $entrada,
             'salida' => $salida
-        ]);
+        ];
     }
 
     public function getBalancePorEtapas(array $filtros = [])
     {
         $movimientos = $this->movimientosRepository->getMovimientosGrouped($filtros);
 
-        $movimientosProcessed = $this->processBalaceToLineChart($movimientos);
-
-        return $movimientosProcessed;
+        return $this->processBalaceToLineChart($movimientos);
     }
 
     public function getGastosPorTipo()
     {
         $gastosPorTipo = $this->movimientosRepository->getGastosByTipo();
 
-        return $this->processGastosPorTipo($gastosPorTipo);
+
+        return [
+            'labels' => $gastosPorTipo->pluck('nombre'),
+            'series' => $gastosPorTipo->pluck('gasto')
+        ];
     }
 
     private function processBalaceToLineChart($data)
     {
         $series = [];
+        $categories = $this->prepareCategoriesToBalaceToLineChart($data, true);
+
         $entradas = $data->filter(fn($item) => $item->destino_id === auth()->user()->cuentaMain()->id);
         $salidas = $data->filter(fn($item) => $item->origen_id === auth()->user()->cuentaMain()->id);
 
         //Ingresos
         $entradasSerie = new stdClass();
         $entradasSerie->name = 'Ingresos';
-        $entradasSerie->data = $this->parseDataToBalaceToLineChart($entradas);
+        $entradasSerie->data = $this->parseDataToBalaceToLineChart($entradas, $categories);
 
         $series[] = $entradasSerie;
 
         //Gastos
         $salidasSerie = new stdClass();
         $salidasSerie->name = 'Gastos';
-        $salidasSerie->data = $this->parseDataToBalaceToLineChart($salidas);
+        $salidasSerie->data = $this->parseDataToBalaceToLineChart($salidas, $categories);
 
         $series[] = $salidasSerie;
 
-        $categories = $this->prepareCategoriesToBalaceToLineChart($data);
-
-        return [$series, $categories];
+        return [
+            'series' => $series,
+            'categories' => $categories
+        ];
 
     }
 
-    private function parseDataToBalaceToLineChart($data)
+    private function parseDataToBalaceToLineChart($data, $categories)
     {
         $dataParsed = [];
 
-        foreach ($data as $item) {
-            $dataParsed[] = $item->saldo ?? 0;
+        foreach ($categories as $key => $categoriy) {
+            $dataParsed[] = $data->filter(function ($item) use ($key){
+                    return $item->month === ($key + 1);
+                })?->first()?->saldo ?? 0;
         }
 
         return $dataParsed;
     }
 
-    private function prepareCategoriesToBalaceToLineChart($data)
+    private function prepareCategoriesToBalaceToLineChart($data, $all = false)
     {
         $categories = [];
+
+        if ($all) {
+            $months = app(generalClass::class)->getMonths();
+
+            foreach ($months as $month) {
+                $categories[] = $month;
+            }
+
+            return $categories;
+        }
+
         $dataGrouped = $data->groupBy('month');
 
         foreach ($dataGrouped as $data) {
-            $categories[] = app(generalClass::MONTH)[$data->first()->month];
+            $categories[] = app(generalClass::class)->getMonths()[$data->first()->month];
         }
 
         return $categories;
-    }
-
-    private function processGastosPorTipo($gastos)
-    {
-        $gastosProcessed = [];
-
-        foreach ($gastos as $gasto) {
-            $gastosProcessed[] = [
-              'label' => $gasto->nombre,
-              'serie' => $gasto->gasto
-            ];
-        }
-
-        return $gastosProcessed;
     }
 }

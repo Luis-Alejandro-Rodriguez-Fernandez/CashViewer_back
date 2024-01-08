@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Http\Resources\MovimientosResource;
 use App\Models\Movimiento;
+use Illuminate\Support\Facades\DB;
 use function Laravel\Prompts\select;
 
 class MovimientosRepository
@@ -18,8 +19,8 @@ class MovimientosRepository
             ->selectRaw('user_destino.name as user_destino')
             ->selectRaw('m.familia_id as familia_id')
             ->selectRaw('mf.nombre as familia')
-            ->selectRaw('m.asignacion_id as asigancion_id')
-            ->selectRaw('.tipo_id as tipo_id')
+            ->selectRaw('m.asignacion_id as asignacion_id')
+            ->selectRaw('m.tipo_id as tipo_id')
             ->selectRaw('mt.nombre as tipo')
             ->selectRaw('m.concepto as concepto')
             ->selectRaw('m.cantidad as cantidad')
@@ -30,9 +31,9 @@ class MovimientosRepository
             ->leftJoin('users as user_destino', 'user_destino.id', '=', 'cuenta_destino.user_id')
             ->leftJoin('movimientos_tipos as mt', 'mt.id', '=', 'm.tipo_id')
             ->leftJoin('movimientos_familias as mf', 'mf.id', '=', 'm.familia_id')
-            ->when(auth()->check(), function ($q) {
-                $q->where('user_origen.id', auth()->user()->id);
-                $q->orWhere('user_destino.id', auth()->user()->id);
+            ->when(auth()->check() && !empty($filtros['cuenta']), function ($q) use ($filtros) {
+                $q->where('cuenta_origen.id', $filtros['cuenta']);
+                $q->orWhere('cuenta_destino.id', $filtros['cuenta']);
             })
             ->where(function ($q) use ($filtros) {
 
@@ -41,6 +42,9 @@ class MovimientosRepository
                 }
 
             })
+            ->offset($filtros['offset'])
+            ->limit($filtros['limit'])
+            ->orderByDesc('fecha')
             ->get();
     }
 
@@ -86,7 +90,7 @@ class MovimientosRepository
             ->selectRaw('movimientos.familia_id as familia_id')
             ->selectRaw('mf.nombre as familia')
             ->selectRaw('movimientos.asignacion_id as asigancion_id')
-            ->selectRaw('.tipo_id as tipo_id')
+            ->selectRaw('movimientos .tipo_id as tipo_id')
             ->selectRaw('mt.nombre as tipo')
             ->selectRaw('movimientos.concepto as concepto')
             ->selectRaw('movimientos.cantidad as cantidad')
@@ -103,11 +107,11 @@ class MovimientosRepository
             ->where(function ($q) use ($filtros) {
 
                 if (!empty($filtros['fecha_desde'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_desde']);
+                    $q->whereDate('movimientos.fecha', '>=', $filtros['fecha_desde']);
                 }
 
                 if (!empty($filtros['fecha_hasta'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_hasta']);
+                    $q->whereDate('movimientos.fecha', '<=', $filtros['fecha_hasta']);
                 }
             })
             ->where('destino_id', auth()->user()->cuentaMain()->id)
@@ -125,7 +129,7 @@ class MovimientosRepository
             ->selectRaw('movimientos.familia_id as familia_id')
             ->selectRaw('mf.nombre as familia')
             ->selectRaw('movimientos.asignacion_id as asigancion_id')
-            ->selectRaw('.tipo_id as tipo_id')
+            ->selectRaw('movimientos.tipo_id as tipo_id')
             ->selectRaw('mt.nombre as tipo')
             ->selectRaw('movimientos.concepto as concepto')
             ->selectRaw('movimientos.cantidad as cantidad')
@@ -142,11 +146,11 @@ class MovimientosRepository
             ->where(function ($q) use ($filtros) {
 
                 if (!empty($filtros['fecha_desde'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_desde']);
+                    $q->whereDate('movimientos.fecha', '>=', $filtros['fecha_desde']);
                 }
 
                 if (!empty($filtros['fecha_hasta'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_hasta']);
+                    $q->whereDate('movimientos.fecha', '<=', $filtros['fecha_hasta']);
                 }
             })
             ->where('origen_id', auth()->user()->cuentaMain()->id)
@@ -181,11 +185,11 @@ class MovimientosRepository
             ->where(function ($q) use ($filtros) {
 
                 if (!empty($filtros['fecha_desde'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_desde']);
+                    $q->whereDate('movimientos.fecha', '>=', $filtros['fecha_desde']);
                 }
 
                 if (!empty($filtros['fecha_hasta'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_hasta']);
+                    $q->whereDate('movimientos.fecha', '<=', $filtros['fecha_hasta']);
                 }
 
                 if (!empty($filtros['entradas']) && $filtros['entradas']) {
@@ -202,32 +206,40 @@ class MovimientosRepository
     public function getMovimientosGrouped(array $filtros = [])
     {
         return Movimiento::query()
-            ->selectRaw('SUM(movimientos.saldo) as saldo')
+            ->selectRaw('SUM(movimientos.cantidad) as saldo')
             ->selectRaw('MONTH(movimientos.fecha) as month')
             ->selectRaw('YEAR(movimientos.fecha) as year')
+            ->selectRaw('movimientos.destino_id as destino_id')
+            ->selectRaw('movimientos.origen_id as origen_id')
             ->when(!empty($filtros['groupByDay']) && $filtros['groupByDay'], function ($q) {
                 $q->selectRaw('DAY(movimientos.fecha) as day');
-                $q->groupBy('day', 'month', 'year');
+                $q->groupBy('day', 'month', 'year', 'origen_id', 'destino_id');
             })
             ->when(!empty($filtros['groupByMonth']) && $filtros['groupByMonth'], function ($q) {
-                $q->groupBy('month', 'year');
+                $q->groupBy('month', 'year', 'origen_id', 'destino_id');
             })
             ->where(function ($q) use ($filtros) {
 
                 if (!empty($filtros['fecha_desde'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_desde']);
+                    $q->whereDate('movimientos.fecha', '>=', $filtros['fecha_desde']);
                 }
 
                 if (!empty($filtros['fecha_hasta'])) {
-                    $q->whereDate('movimientos.created_at', $filtros['fecha_hasta']);
+                    $q->whereDate('movimientos.fecha', '<=', $filtros['fecha_hasta']);
                 }
-
+            })
+            ->where(function ($q) use ($filtros) {
                 if (!empty($filtros['entradas']) && $filtros['entradas']) {
-                    $q->where('destino_id', auth()->user()->cuentaMain()->id);
+                    $q->where('movimientos.destino_id', auth()->user()->cuentaMain()->id);
                 }
 
                 if (!empty($filtros['salidas']) && $filtros['salidas']) {
-                    $q->where('origen_id', auth()->user()->cuentaMain()->id);
+                    $q->where('movimientos.origen_id', auth()->user()->cuentaMain()->id);
+                }
+
+                if (empty($filtros['salidas']) && empty($filtros['entradas'])) {
+                    $q->where('movimientos.destino_id', auth()->user()->cuentaMain()->id);
+                    $q->orWhere('movimientos.origen_id', auth()->user()->cuentaMain()->id);
                 }
             })
             ->get();
@@ -236,10 +248,21 @@ class MovimientosRepository
     public function getGastosByTipo($filtros = [])
     {
         return Movimiento::query()
-            ->selectRaw('SUM(movimientos.saldo) as gasto')
-            ->selectRaw('mt.nombre as nombre')
-            ->leftJoin('movimientos_tipos as mt','mt.id', '=', 'movimientos.tipo_id')
-            ->groupBy( 'mt.nombre')
+            ->selectRaw('SUM(movimientos.cantidad) as gasto')
+            ->selectRaw('mf.nombre as nombre')
+            ->where(function ($q) use ($filtros) {
+                if (!empty($filtros['fecha_desde'])) {
+                    $q->whereDate('movimientos.fecha', '>=', $filtros['fecha_desde']);
+                }
+
+                if (!empty($filtros['fecha_hasta'])) {
+                    $q->whereDate('movimientos.fecha', '<=', $filtros['fecha_hasta']);
+                }
+
+                $q->where('origen_id', auth()->user()->cuentaMain()->id);
+            })
+            ->leftJoin('movimientos_familias as mf', 'mf.id', '=', 'movimientos.familia_id')
+            ->groupBy( 'mf.nombre')
             ->get();
     }
 }

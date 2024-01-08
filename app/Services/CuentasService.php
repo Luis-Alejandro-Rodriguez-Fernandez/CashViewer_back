@@ -18,4 +18,24 @@ class CuentasService
     {
         return $this->cuentasRepository->getCuentasObjetivos($filtros);
     }
+
+    public function createCuentaObjetivo(array $data = [])
+    {
+        if (isset($data['name']) && isset($data['descripcion']) && !empty($data['objetivo'])) {
+            return $this->cuentasRepository->createCuentaObjetivo($data);
+        }
+
+        return null;
+    }
+
+    public function updateCuentaObjetivo(array $data = [])
+    {
+        $cuenta = $this->cuentasRepository->getCuentasObjetivos(['id' => $data['id']])->first();
+
+        if ($cuenta) {
+            return $this->cuentasRepository->updateCuentaObjetivo($cuenta, $data);
+        }
+
+        return null;
+    }
 }

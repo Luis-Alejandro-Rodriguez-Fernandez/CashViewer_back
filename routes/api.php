@@ -31,10 +31,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('/cuenta')->controller(CuentaController::class)->group(function () {
         Route::post('/', 'index');
         Route::post('/goals', 'getCuentasObjetivo');
+        Route::post('/goals/set', 'setCuentaObjetivo');
+        Route::post('/goals/end', 'finalizarObjetivo');
+        Route::post('/goal/delete', 'deleteCuentaObjetivo');
     });
 
     //Movimientos
-    Route::prefix('movimientos')->controller(MovimientoController::class)->group(function () {
+    Route::prefix('/movimientos')->controller(MovimientoController::class)->group(function () {
         Route::post('/', 'getMovimientos');
         Route::post('/set', 'setMovimiento');
         Route::post('/in', 'getEntradas');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 
 use App\Http\Resources\CuentaResource;
+use App\Http\Resources\ObjetivoResource;
 use App\Models\Cuenta;
 use App\Services\CuentasService;
 use Illuminate\Http\Request;
@@ -50,19 +51,100 @@ class CuentaController extends Controller
     {
         $cuentas = [];
 
-        if (Auth::check() && !empty(auth()->user()->cuenta)) {
-            $cuentas = $this->cuentasService->getCuentasObjetivos(['id' => auth()->user()->id]);
+        if (Auth::check() && !empty(auth()->user()->cuentaMain())) {
+            $cuentas = $this->cuentasService->getCuentasObjetivos();
         }
 
-        return $this->generalMethods()->responseToApp(1, $cuentas, 'Cuentas objetivo en data');
+        return $this->generalMethods()->responseToApp(
+            1,
+            ObjetivoResource::collection($cuentas),
+            'Cuentas objetivo en data'
+        );
     }
 
-    public function createCuentaObjetivo()
-    {}
+    public function setCuentaObjetivo(Request $request)
+    {
+        $goal = null;
 
-    public function updateCuentaObjetivo()
-    {}
+        if (!Auth::check() || empty(auth()->user()->cuentaMain())) {
+            return $this->generalMethods()->responseToApp(
+                0,
+                [],
+                'No se pudo crear el objetivo'
+            );
+        }
+
+        if (isset($request->id)) {
+            $goal = $this->cuentasService->updateCuentaObjetivo($request->toArray());
+        } else {
+            $goal = $this->cuentasService->createCuentaObjetivo($request->toArray());
+        }
+
+        if ($goal && $goal->save()) {
+            return $this->generalMethods()->responseToApp(
+                1,
+                new ObjetivoResource($goal),
+                'Objetivo creado correctamente'
+            );
+        }
+
+        return $this->generalMethods()->responseToApp(
+            0,
+            [],
+            'No se pudo crear el objetivo'
+        );
+    }
+
+    public function finalizarObjetivo(Request $request)
+    {
+        $goal = null;
+
+        if (isset($request->id)) {
+            $goal = $this->cuentasService->getCuentasObjetivos(['id' => $request->id])->first();
+        }
+
+        if ($goal) {
+            $goal->finalizado = true;
+        }
+
+        if ($goal && $goal->save()) {
+
+            return $this->generalMethods()->responseToApp(
+                1,
+                ObjetivoResource::collection($goal),
+                'Objetivo creado correctamente'
+            );
+        }
+
+        return $this->generalMethods()->responseToApp(
+            0,
+            [],
+            'No se pudo finalizar el objetivo'
+        );
+    }
 
     public function deleteCuentaObjetivo()
-    {}
+    {
+        $cuenta = null;
+
+        if (Auth::check() && !empty(auth()->user()->cuentaMain())) {
+            $cuenta = $this->cuentasService->getCuentasObjetivos(request()->toArray())?->first() ?? null;
+        }
+
+        if ($cuenta && $cuenta->saldo !== 0) {
+            $cuenta->delete();
+
+            return $this->generalMethods()->responseToApp(
+                1,
+                [],
+                'El objetivo se eliminó correctamente'
+            );
+        }
+
+        return $this->generalMethods()->responseToApp(
+            0,
+            [],
+            'Hubo un error al eliminar el objetivo. Asegurese que la cuenta está sin saldo antes de realizar la operación.'
+        );
+    }
 }
